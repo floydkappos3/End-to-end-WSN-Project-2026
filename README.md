@@ -191,6 +191,13 @@ Ubuntu 16.04, TinyOS, and mote USB access should now be configured.
 
 # Περαιτέρω οδηγίες
 
+## Σχετικά με τις μετρήσεις
+
+1. Όσες ομάδες έχουν TelosB mote, να χρησιμοποιήσουν τους πραγματικούς sensors του TelosB
+2. Όσες ομάδες δεν έχουν TelosB mote, να χρησιμοποιήσουν 'fake' μετρήσεις.
+
+Συγκεκριμένα, μελετήστε το παράδειγμα Sensing. Όσοι έχουν TelosB, να χρησιμοποιήσουν το tmote_onboard_sensors module, ενώ όσοι δεν έχουν να χρησιμοποιήσουν το universal_sensors module. Περισσότερες λεπτομέρειες στο README του παραδείγματος.
+
 ## Εύρεση των θυρών USB
 
 Για να βρείτε σε ποιά θύρα USB είναι συνδεδεμένο το mote, χρησιμοποιήστε την παρακάτω εντολή:
@@ -273,11 +280,14 @@ sudo java net.tinyos.tools.PrintfClient -comm sf@localhost:<port>
 1. examples/Blink
 2. examples/BlinkToRadio
 3. examples/Sensing
-4. apps/Blink
-5. apps/tutorials/BlinkToRadio
-6. apps/tutorials/LowPowerSensing 
 
-# Σχόλια φοιτητή
+Τα παραδείγματα αυτά είναι παραλλαγές των αρχικών παραδειγμάτων του TinyOS:
+
+1. apps/Blink
+2. apps/tutorials/BlinkToRadio
+3. examples/LowPowerSensing
+
+# Αναφορά
 
 Σε αυτό το section γράψτε μία σύντομη αναφορά σχετικά με την υλοποίηση και τα βήματα της άσκησης.
 
