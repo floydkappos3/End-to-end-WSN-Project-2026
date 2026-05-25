@@ -52,6 +52,7 @@ module SensingBaseC {
 
     interface Receive as SerialRequestSampleMsgsReceive;
     interface AMSend as RadioRequestSampleMsgsSend;
+    interface Timer<TMilli> as Timer0;
     interface Receive as RadioSampleMsgReceive;
     interface AMSend as SerialSampleMsgSend;
   }
@@ -80,7 +81,7 @@ implementation {
   }
 
   event void SerialAMControl.stopDone(error_t error) {
-  }
+    call Timer0.startPeriodic(20000);  }
 
   event message_t* SerialRequestSampleMsgsReceive.receive(message_t* msg, void* payload, uint8_t len) {
     serial_request_samples_msg_t* request_msg = payload;
@@ -118,5 +119,19 @@ implementation {
     }
     else serialSending = FALSE;
   }
+
+event void Timer0.fired() {
+
+    call RadioRequestSampleMsgsSend.send(
+
+        AM_BROADCAST_ADDR,
+
+        &sample_msg,
+
+        0
+
+    );
+
 }
 
+}

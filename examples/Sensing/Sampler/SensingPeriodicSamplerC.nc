@@ -47,7 +47,8 @@ module SensingPeriodicSamplerC {
     interface Packet;
     interface AMSend as SampleSend;
     interface Receive as RequestSamplesReceive;
-  }
+    interface Timer<TMilli> as SendTimer;
+ }
 }
 implementation {
   message_t sample_msg;
@@ -76,17 +77,25 @@ implementation {
   task void sendSampleMsgTask() { sendSampleMsg(); }
 	
   event void Boot.booted() {
-    call AMControl.start();
-  }
+     call AMControl.start();
+     sendBusy = TRUE;
+     readNext();
+ }
   
   event void AMControl.startDone(error_t e) {
-  	if(e != SUCCESS)
-  		call AMControl.start();
-  }
-  
+    if(e != SUCCESS)
+        call AMControl.start();
+    else
+        call SendTimer.startPeriodic(20000);
+}
   event void AMControl.stopDone(error_t e) {
   }
-  
+  event void SendTimer.fired() {
+    if(sendBusy == FALSE) {
+        sendBusy = TRUE;
+        readNext();
+    }
+}
   event void SampleLogRead.readDone(sensor_sample_t* sample, error_t error) {
     if(error == SUCCESS) {
       nx_sensor_sample_t* nx_sample = call SampleSend.getPayload(&sample_msg, sizeof(nx_sample));

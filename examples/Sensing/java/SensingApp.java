@@ -37,12 +37,25 @@
 import net.tinyos.message.*;
 import net.tinyos.util.*;
 import java.io.*;
-/**
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
+import org.bson.Document;
+ /**
 */
 
 public class SensingApp implements MessageListener
 {
   MoteIF mote;
+MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017");
+
+MongoDatabase database =
+mongoClient.getDatabase("wsn_database");
+
+MongoCollection<Document> collection =
+database.getCollection("sensor_data");
 
   /* Main entry point */
   void run() {
@@ -50,11 +63,36 @@ public class SensingApp implements MessageListener
     mote.registerListener(new SerialSampleMsg(), this);
   }
 
-  synchronized public void messageReceived(int dest_addr, Message msg) {
+   synchronized public void messageReceived(int dest_addr, Message msg) {
     if (msg instanceof SerialSampleMsg) {
-      System.out.print(msg.toString());
+
+        SerialSampleMsg sample = (SerialSampleMsg) msg;
+
+        Document data = new Document();
+
+        data.append("timestamp", new java.util.Date());
+
+        data.append("id", sample.get_src_addr());
+        data.append("count", sample.get_sample_sample_num());
+
+        data.append("temp", sample.get_sample_temperature());
+        data.append("humidity", sample.get_sample_humidity());
+
+        data.append("photo", sample.get_sample_photo_active());
+        data.append("solar", sample.get_sample_total_solar());
+
+        collection.insertOne(data);
+
+        System.out.println(
+            "ID=" + sample.get_src_addr() +
+            " Count=" + sample.get_sample_sample_num() +
+            " Temp=" + sample.get_sample_temperature() +
+            " Humidity=" + sample.get_sample_humidity() +
+            " Photo=" + sample.get_sample_photo_active() +
+            " Solar=" + sample.get_sample_total_solar()
+        );
     }
-  }
+}
 
   synchronized public void requestSamples(int addr) {
     SerialRequestSamplesMsg msg = new SerialRequestSamplesMsg();

@@ -55,7 +55,8 @@ implementation {
 
   components new AMReceiverC(AM_REQUEST_SAMPLES_MSG) as RequestSamplesReceiver;
   App.RequestSamplesReceive -> RequestSamplesReceiver;
-
+  components new TimerMilliC() as SendTimer;
+App.SendTimer -> SendTimer;
   components LedsC as LedsC;
   App.Leds -> LedsC;
 }

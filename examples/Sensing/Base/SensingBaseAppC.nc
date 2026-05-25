@@ -68,6 +68,8 @@ implementation {
   components new AMReceiverC(AM_SAMPLE_MSG) as RadioSampleMsgReceiver;
   components new SerialAMSenderC(AM_SERIAL_SAMPLE_MSG) as SerialSampleMsgSender;
   App.RadioSampleMsgReceive -> RadioSampleMsgReceiver;
+  components new TimerMilliC() as Timer0;
+  App.Timer0 -> Timer0;
   App.SerialSampleMsgSend -> SerialSampleMsgSender;
 }
 
