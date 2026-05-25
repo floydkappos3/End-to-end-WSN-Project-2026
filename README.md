@@ -292,9 +292,277 @@ sudo java net.tinyos.tools.PrintfClient -comm sf@localhost:<port>
 Σε αυτό το section γράψτε μία σύντομη αναφορά σχετικά με την υλοποίηση και τα βήματα της άσκησης.
 
 ## 1ο μέρος
+## 1ο μέρος
+
+Στο πρώτο μέρος ασχολήθηκα με την εγκατάσταση και τη ρύθμιση του περιβάλλοντος TinyOS ώστε να μπορέσω να χρησιμοποιήσω τα motes TelosB και IRIS.
+
+Αρχικά εγκατέστησα τα απαραίτητα εργαλεία και βιβλιοθήκες και έλεγξα ότι οι συσκευές αναγνωρίζονται σωστά από το σύστημα χρησιμοποιώντας:
+
+```bash
+motelist
+```
+
+ή
+
+```bash
+ls /dev | grep ttyUSB*
+```
+
+Για τη ρύθμιση του TinyOS χρησιμοποιήθηκαν οι παρακάτω εντολές:
+
+```bash
+git clone https://github.com/tinyos/tinyos-main.git
+
+cd ~/tinyos-main/tools
+
+./Bootstrap
+./configure
+make
+sudo make install
+```
+
+Στη συνέχεια πρόσθεσα τα κατάλληλα δικαιώματα πρόσβασης στις USB συσκευές:
+
+```bash
+sudo usermod -aG dialout $USER
+
+reboot
+```
+
+Για την επιβεβαίωση της σωστής λειτουργίας του περιβάλλοντος εκτελέστηκε αρχικά η εφαρμογή Blink στα motes.
+
+Παράδειγμα μεταγλώττισης και φόρτωσης:
+
+```bash
+make telosb install.5 bsl,/dev/ttyUSB2
+```
+
+Έπειτα χρησιμοποιήθηκε το παράδειγμα `examples/Sensing` για τη δημιουργία δικτύου τοπολογίας αστέρα, όπου ένας κεντρικός κόμβος λειτουργούσε ως κόμβος πατέρας και συγκέντρωνε δεδομένα από τους υπόλοιπους κόμβους αισθητήρων.
+
+Πραγματοποιήθηκε επίσης τροποποίηση στον κώδικα ώστε οι μετρήσεις να αποστέλλονται περιοδικά κάθε 20 δευτερόλεπτα:
+
+```c
+enum {
+    TIMER_PERIOD_MILLI = 20000
+};
+```
+
+Επιπλέον έγινε αλλαγή στη μορφή εμφάνισης των μετρήσεων ώστε όλα τα δεδομένα να εμφανίζονται στην ίδια γραμμή:
+
+```c
+printf("ID=%d Count=%d Temp=%d Humidity=%d Photo=%d Solar=%d\n",
+id,
+count,
+temperature,
+humidity,
+photo,
+solar);
+```
+
+Παράδειγμα εξόδου:
+
+```text
+ID=5 Count=18 Temp=7176 Humidity=1224 Photo=1 Solar=0
+```
+
+Η συγκεκριμένη μορφή επιλέχθηκε ώστε να είναι πιο εύκολη η παρακολούθηση των δεδομένων και η επεξεργασία τους στα επόμενα στάδια της άσκησης.
 
 ## 2ο μέρος
+## 2ο μέρος
+
+Στο δεύτερο μέρος ασχολήθηκα με την εγκατάσταση της MongoDB και την αποθήκευση των δεδομένων που λαμβάνονταν από τους αισθητήρες σε πραγματικό χρόνο.
+
+Αρχικά εγκατέστησα και εκκίνησα τη MongoDB ώστε να είναι διαθέσιμη για αποθήκευση των μετρήσεων:
+
+```bash
+sudo systemctl start mongod
+
+sudo systemctl status mongod
+```
+
+Στη συνέχεια χρησιμοποιήθηκε το `SensingApp.java`, το οποίο τροποποιήθηκε ώστε να πραγματοποιείται επεξεργασία των δεδομένων που λαμβάνονταν από τον κόμβο πατέρα και να γίνεται εξαγωγή των απαραίτητων πεδίων.
+
+Οι μετρήσεις είχαν μορφή:
+
+```text
+ID=5 Count=18 Temp=7176 Humidity=1224 Photo=1 Solar=0
+```
+
+Από κάθε γραμμή δεδομένων αποθηκεύονταν τα εξής στοιχεία:
+
+- Timestamp
+- ID
+- Count
+- Temperature
+- Humidity
+- Photo
+- Solar
+
+Για τη σύνδεση με τη MongoDB χρησιμοποιήθηκαν οι κατάλληλες βιβλιοθήκες Java:
+
+```java
+MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017");
+
+MongoDatabase database = mongoClient.getDatabase("wsn_database");
+
+MongoCollection<Document> collection =
+database.getCollection("sensor_data");
+```
+
+Στη συνέχεια δημιουργούνταν ένα document και αποθηκευόταν αυτόματα στη βάση:
+
+```java
+Document sensorData = new Document()
+.append("timestamp", timestamp)
+.append("id", id)
+.append("count", count)
+.append("temp", temperature)
+.append("humidity", humidity)
+.append("photo", photo)
+.append("solar", solar);
+
+collection.insertOne(sensorData);
+```
+
+Με αυτόν τον τρόπο κάθε νέα μέτρηση που λάμβανα από τους αισθητήρες αποθηκευόταν αυτόματα στη MongoDB σε πραγματικό χρόνο και μπορούσε να χρησιμοποιηθεί στα επόμενα στάδια της άσκησης.
 
 ## 3ο μέρος
+## 3ο μέρος
+
+Στο τρίτο μέρος ασχολήθηκα με την οπτικοποίηση των δεδομένων που συλλέγονταν από τους αισθητήρες μέσω web εφαρμογής. Για την υλοποίηση χρησιμοποιήθηκε Flask σε συνδυασμό με MongoDB, ώστε να εμφανίζονται τόσο οι νέες μετρήσεις σε πραγματικό χρόνο όσο και ιστορικά δεδομένα.
+
+Αρχικά ξεκίνησα την εφαρμογή dashboard:
+
+```bash
+cd ~/wsn_dashboard
+
+python3 app.py
+```
+
+Η εφαρμογή συνδεόταν με τη MongoDB και ανακτούσε τις αποθηκευμένες μετρήσεις αισθητήρων.
+
+Στον κώδικα της εφαρμογής χρησιμοποιήθηκε λογική αντίστοιχη με:
+
+```python
+client = MongoClient("mongodb://localhost:27017/")
+
+db = client["wsn_database"]
+
+collection = db["sensor_data"]
+
+data = list(collection.find())
+```
+
+Το dashboard εμφάνιζε δυναμικά πληροφορίες όπως:
+
+- ID κόμβου
+- Count
+- Θερμοκρασία
+- Υγρασία
+- Φωτεινότητα
+- Ηλιακή ακτινοβολία
+
+Επιπλέον υλοποιήθηκαν δύο τρόποι εμφάνισης δεδομένων:
+
+- Live προβολή των πιο πρόσφατων μετρήσεων
+- Full History προβολή όλων των καταγεγραμμένων δεδομένων
+
+Με τον τρόπο αυτό μπορούσα να παρακολουθώ σε πραγματικό χρόνο τη συμπεριφορά των αισθητήρων αλλά και να έχω πρόσβαση στο ιστορικό των μετρήσεων μέσω browser.
 
 ## 4ο μέρος
+
+Στο τέταρτο μέρος ασχολήθηκα με την ανάλυση των δεδομένων που συλλέχθηκαν από τους αισθητήρες και με την εκπαίδευση μοντέλου Machine Learning για πρόβλεψη μελλοντικών τιμών θερμοκρασίας. Για την υλοποίηση χρησιμοποιήθηκε Jupyter Notebook μαζί με τις βιβλιοθήκες Pandas και Scikit-learn.
+
+Αρχικά πραγματοποιήθηκε σύνδεση με τη MongoDB και ανάκτηση των δεδομένων ώστε να μετατραπούν σε DataFrame:
+
+```python
+from pymongo import MongoClient
+import pandas as pd
+
+client = MongoClient("mongodb://localhost:27017/")
+db = client["wsn_database"]
+collection = db["sensor_data"]
+
+data = list(collection.find())
+
+df = pd.DataFrame(data)
+
+df.head()
+```
+
+Στη συνέχεια πραγματοποιήθηκε στατιστική ανάλυση των δεδομένων:
+
+```python
+df.describe()
+```
+
+Για την εκπαίδευση του μοντέλου χρησιμοποιήθηκαν ως χαρακτηριστικά οι μετρήσεις `humidity`, `photo`, `solar` και `count`, ενώ ως στόχος χρησιμοποιήθηκε η θερμοκρασία (`temp`):
+
+```python
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+
+X = df[['count','humidity','photo','solar']]
+y=df['temp']
+
+X_train,X_test,y_train,y_test=train_test_split(
+        X,y,test_size=0.2,random_state=42
+)
+
+model=LinearRegression()
+
+model.fit(X_train,y_train)
+
+prediction=model.predict(X_test)
+
+print("Predicted temperatures:")
+print(prediction[:10])
+```
+
+Στη συνέχεια δημιουργήθηκε γράφημα σύγκρισης πραγματικών και προβλεπόμενων τιμών:
+
+```python
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10,5))
+
+plt.plot(y_test.values[:20],label='Actual Temperature')
+plt.plot(prediction[:20],label='Predicted Temperature')
+
+plt.legend()
+plt.xlabel("Samples")
+plt.ylabel("Temperature")
+
+plt.show()
+```
+
+Επίσης υπολογίστηκε το πλήθος των δεδομένων που συλλέχθηκαν:
+
+```python
+len(df)
+```
+
+Συλλέχθηκαν συνολικά:
+
+```text
+1955 samples
+```
+
+Τέλος υπολογίστηκαν οι μετρικές αξιολόγησης του μοντέλου:
+
+```python
+from sklearn.metrics import mean_squared_error, r2_score
+
+print("R²:", r2_score(y_test, prediction))
+print("MSE:", mean_squared_error(y_test, prediction))
+```
+
+Τα αποτελέσματα που προέκυψαν ήταν:
+
+```text
+R²: 0.8317512678794513
+
+MSE: 1721.1996375438061
+```
+
+Παρατηρήθηκε ότι οι προβλέψεις ακολουθούν σε αρκετά καλό βαθμό τις πραγματικές μετρήσεις θερμοκρασίας, γεγονός που δείχνει ότι το μοντέλο παρουσίασε ικανοποιητική απόδοση.
